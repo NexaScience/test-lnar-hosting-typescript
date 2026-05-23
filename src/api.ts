@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
-import { server as mcpServer } from "./mcp_server.js";
+import { createMcpServer } from "./mcp_server.js";
 
 const app = express();
 app.use(express.json());
@@ -76,8 +76,8 @@ app.delete("/notes/:id", (req: Request, res: Response) => {
 //
 // クライアントは初期化 POST で `Mcp-Session-Id` を発行され、以降のリクエスト
 // （tool 呼び出しの POST、SSE 通知用の GET、終了通知の DELETE）で同じ ID を
-// 使ってセッションを再利用する。stdio 接続と同じ MCP サーバーインスタンスを
-// 共有するので、tools は同一プロセス内のメモリにアクセスできる。
+// 使ってセッションを再利用する。MCP SDK の `Server` は同時に複数の transport
+// に connect できないため、セッションごとに新しい `McpServer` を生成する。
 // ---------------------------------------------------------------------------
 
 const transports = new Map<string, StreamableHTTPServerTransport>();
@@ -108,7 +108,8 @@ async function handleMcpRequest(req: Request, res: Response): Promise<void> {
     transport.onclose = () => {
       if (transport!.sessionId) transports.delete(transport!.sessionId);
     };
-    await mcpServer.connect(transport);
+    const server = createMcpServer();
+    await server.connect(transport);
   }
 
   await transport.handleRequest(req, res, req.body);
