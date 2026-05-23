@@ -10,7 +10,7 @@ Notes API と MCP サーバーの TypeScript 実装です。
 npm install
 ```
 
-### 2. Express API サーバーを起動（ターミナル 1）
+### 2. Express API サーバーを起動
 
 ```bash
 npm run start:api
@@ -18,13 +18,17 @@ npm run start:api
 
 デフォルトポート: http://localhost:3000
 
+このプロセスは REST API と MCP の Streamable HTTP エンドポイント
+(`/mcp`) を同時に提供します。Claude Desktop など HTTP 経由で接続する
+クライアントは `http://localhost:3000/mcp` を指定してください。
+
 開発モード（ファイル変更時に自動再起動）:
 
 ```bash
 npm run dev:api
 ```
 
-### 3. MCP サーバーを起動（ターミナル 2）
+### 3. stdio で MCP に接続（任意）
 
 stdio transport（Claude Desktop / MCP Inspector などで使用）:
 
@@ -34,8 +38,16 @@ npm run start:mcp
 
 ### 4. MCP Inspector で動作確認
 
+stdio:
+
 ```bash
 npx @modelcontextprotocol/inspector tsx src/mcp_server.ts
+```
+
+Streamable HTTP（事前に `npm run start:api` を起動）:
+
+```bash
+npx @modelcontextprotocol/inspector --transport streamable-http http://localhost:3000/mcp
 ```
 
 ## API エンドポイント
@@ -63,4 +75,4 @@ npx @modelcontextprotocol/inspector tsx src/mcp_server.ts
 | 変数名          | 説明                         | デフォルト値              |
 |----------------|------------------------------|--------------------------|
 | `PORT`         | API サーバーのポート番号        | `3000`                   |
-| `API_BASE_URL` | MCP サーバーが接続する API URL  | `http://localhost:3000`  |
+| `API_BASE_URL` | MCP ツールが呼び出す REST API   | `http://localhost:${PORT}` |
