@@ -1,19 +1,21 @@
 /**
  * MCP server that wraps the Notes REST API.
  *
- * Usage:
- *   1. Start the Express server:  npm run start:api
- *   2. Start this MCP server:     npm run start:mcp
- *      or via MCP Inspector:      npx @modelcontextprotocol/inspector tsx src/mcp_server.ts
+ * - `server` is exported so `api.ts` can mount it on Express via Streamable HTTP.
+ * - When this file is run directly (e.g. `npm run start:mcp`), it connects over
+ *   stdio so Claude Desktop / MCP Inspector can still attach.
  */
 
+import { fileURLToPath } from "node:url";
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3000";
+const API_BASE_URL =
+  process.env.API_BASE_URL ??
+  `http://localhost:${process.env.PORT ?? 3000}`;
 
-const server = new McpServer({
+export const server = new McpServer({
   name: "notes-mcp-server",
   version: "1.0.0",
 });
@@ -134,8 +136,17 @@ server.tool(
 );
 
 // ---------------------------------------------------------------------------
-// Start
+// stdio entrypoint
 // ---------------------------------------------------------------------------
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+const invokedDirectly =
+  process.argv[1] !== undefined &&
+  fileURLToPath(import.meta.url) === process.argv[1];
+
+if (invokedDirectly) {
+  const { StdioServerTransport } = await import(
+    "@modelcontextprotocol/sdk/server/stdio.js"
+  );
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
